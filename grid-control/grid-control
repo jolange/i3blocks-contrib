@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+
+# Show grid-control information from the monitoring directory.
+
+# Copyright 2017 Johannes Lange
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import glob
+import json
+import os
+
+
+task_id_trunc = 6
+
+if 'GC_MONITOR_DIR' in os.environ:
+    directory = os.environ['GC_MONITOR_DIR']
+else:
+    # raise Exception("Environment variable 'GC_MONITOR_DIR' has to be set")
+    directory = "~/afs/playground/gc_mon/"
+
+# excluded SUCCESS
+state_order = ['INIT', 'SUBMITTED', 'DISABLED', 'READY', 'WAITING', 'QUEUED',
+               'ABORTED', 'RUNNING', 'CANCEL', 'UNKNOWN', 'CANCELLED', 'DONE',
+               'FAILED']
+state_short = {
+    'INIT': 'I',
+    'SUBMITTED': 'S',
+    'DISABLED': 'DISABLED',
+    'READY': 'READY',
+    'WAITING': 'WAITING',
+    'QUEUED': 'Q',
+    'ABORTED': 'ABORTED',
+    'RUNNING': 'R',
+    'CANCEL': 'CANCEL',
+    'UNKNOWN': 'UNKNOWN',
+    'CANCELLED': 'CANCELLED',
+    'DONE': 'DONE',
+    'FAILED': 'F',
+}
+
+
+def colorize(string, color=None):
+    if color:
+        return "<span color='{}'>{}</span>".format(color, string)
+    return string
+
+
+def get_task_output(states):
+    output = ""
+    # treat success separately
+    success = states["SUCCESS"]
+    total = success
+    for state in state_order:
+        count = states[state]
+        total += count
+        if count >= 1:
+            add = "{} {}".format(state_short[state], count)
+            color = None
+            if state == 'FAILED':
+                color = 'red'
+            elif state not in ('RUNNING', 'DONE'):
+                color = 'blue'
+            output += colorize(add, color) + ' '
+        # print (state,count)
+    output += "{}/{} ({:.0f}%)".format(success, total, 100.*success/total)
+    if success == total:
+        output = colorize(output, '#0f0')
+    return output
+
+# expand environment variables etc.
+directory = os.path.expandvars(directory)
+directory = os.path.expanduser(directory)
+
+output = []
+for fname in glob.glob(directory+"/*.json"):
+    with open(fname) as json_file:
+        task_info = json.load(json_file)
+    states = task_info['states']
+    task_id = task_info['task id']
+    output.append(task_id[:task_id_trunc])
+    output[-1] += " " + get_task_output(states)
+
+if output:
+    print(" - ".join(output))
+else:
+    print("GC None")
