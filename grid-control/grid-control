@@ -74,8 +74,8 @@ def get_task_output(states):
                 color = 'blue'
             output += colorize(add, color) + ' '
         # print (state,count)
-    output += "{}/{} ({:.0f}%)".format(success, total, 100.*success/total)
-    if success == total:
+    output += "{}/{} ({:.0f}%)".format(success, total, 100.*success/total if total else 0)
+    if total and success == total:
         output = colorize(output, '#0f0')
     return output
 
