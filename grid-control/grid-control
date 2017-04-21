@@ -30,6 +30,11 @@ else:
     # raise Exception("Environment variable 'GC_MONITOR_DIR' has to be set")
     directory = "~/afs/playground/gc_mon/"
 
+# right click triggers deletion of the status json
+# of a completely processed task
+delete_completed = ('BLOCK_BUTTON' in os.environ
+                    and os.environ['BLOCK_BUTTON'] == '3')
+
 # excluded SUCCESS
 state_order = ['INIT', 'SUBMITTED', 'DISABLED', 'READY', 'WAITING', 'QUEUED',
                'ABORTED', 'RUNNING', 'CANCEL', 'UNKNOWN', 'CANCELLED', 'DONE',
@@ -74,10 +79,12 @@ def get_task_output(states):
                 color = 'blue'
             output += colorize(add, color) + ' '
         # print (state,count)
-    output += "{}/{} ({:.0f}%)".format(success, total, 100.*success/total if total else 0)
-    if total and success == total:
+    output += "{}/{} ({:.0f}%)".format(success, total,
+                                       100.*success/total if total else 0)
+    done = total and success == total
+    if done:
         output = colorize(output, '#0f0')
-    return output
+    return output, done
 
 # expand environment variables etc.
 directory = os.path.expandvars(directory)
@@ -90,7 +97,11 @@ for fname in glob.glob(directory+"/*.json"):
     states = task_info['states']
     task_id = task_info['task id']
     output.append(task_id[:task_id_trunc])
-    output[-1] += " " + get_task_output(states)
+    task_output, done = get_task_output(states)
+    output[-1] += " " + task_output
+    if done and delete_completed:
+        output[-1] = "<span strikethrough='true'>{}</span>".format(output[-1])
+        os.remove(fname)
 
 if output:
     print(" - ".join(output))
