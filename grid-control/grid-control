@@ -34,6 +34,9 @@ else:
 # of a completely processed task
 delete_completed = ('BLOCK_BUTTON' in os.environ
                     and os.environ['BLOCK_BUTTON'] == '3')
+# middle click deletes all
+delete_all = ('BLOCK_BUTTON' in os.environ
+              and os.environ['BLOCK_BUTTON'] == '2')
 
 # excluded SUCCESS
 state_order = ['INIT', 'SUBMITTED', 'DISABLED', 'READY', 'WAITING', 'QUEUED',
@@ -99,7 +102,7 @@ for fname in glob.glob(directory+"/*.json"):
     output.append(task_id[:task_id_trunc])
     task_output, done = get_task_output(states)
     output[-1] += " " + task_output
-    if done and delete_completed:
+    if delete_all or (done and delete_completed):
         output[-1] = "<span strikethrough='true'>{}</span>".format(output[-1])
         os.remove(fname)
 
