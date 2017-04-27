@@ -101,6 +101,8 @@ for fname in glob.glob(directory+"/*.json"):
     task_id = task_info['task id']
     output.append(task_id[:task_id_trunc])
     task_output, done = get_task_output(states)
+    if task_info['gc state'] != 'running' and not done:
+        output[-1] += " <span color='red'>{}</span>".format(task_info['gc state'])
     output[-1] += " " + task_output
     if delete_all or (done and delete_completed):
         output[-1] = "<span strikethrough='true'>{}</span>".format(output[-1])
