@@ -97,13 +97,16 @@ output = []
 for fname in glob.glob(directory+"/*.json"):
     with open(fname) as json_file:
         task_info = json.load(json_file)
-    states = task_info['states']
     task_id = task_info['task id']
     output.append(task_id[:task_id_trunc])
-    task_output, done = get_task_output(states)
+    done = False
+    task_output = ""
+    if 'states' in task_info:
+        task_output, done = get_task_output(task_info['states'])
+        task_output = " " + task_output
     if task_info['gc state'] != 'running' and not done:
         output[-1] += " <span color='red'>{}</span>".format(task_info['gc state'])
-    output[-1] += " " + task_output
+    output[-1] += task_output
     if delete_all or (done and delete_completed):
         output[-1] = "<span strikethrough='true'>{}</span>".format(output[-1])
         os.remove(fname)
