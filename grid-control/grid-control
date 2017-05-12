@@ -17,12 +17,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import datetime
 import glob
 import json
 import os
+import time
 
 
 task_id_trunc = 6
+timestamp_warning_threshold = 30 # sec
 
 if 'GC_MONITOR_DIR' in os.environ:
     directory = os.environ['GC_MONITOR_DIR']
@@ -93,25 +96,29 @@ def get_task_output(states):
 directory = os.path.expandvars(directory)
 directory = os.path.expanduser(directory)
 
-output = []
+outputs = []
 for fname in glob.glob(directory+"/*.json"):
     with open(fname) as json_file:
         task_info = json.load(json_file)
+    timestamp_diff = time.time() - os.path.getmtime(fname)
     task_id = task_info['task id']
-    output.append(task_id[:task_id_trunc])
+    output = task_id[:task_id_trunc]
+    if task_info['gc state'] != 'terminated' and timestamp_diff > timestamp_warning_threshold:
+        task_info['gc state'] = "crashed %s ago?" % datetime.timedelta(seconds=int(timestamp_diff))
     done = False
     task_output = ""
     if 'states' in task_info:
         task_output, done = get_task_output(task_info['states'])
         task_output = " " + task_output
     if task_info['gc state'] != 'running' and not done:
-        output[-1] += " <span color='red'>{}</span>".format(task_info['gc state'])
-    output[-1] += task_output
+        output += " <span color='red'>{}</span>".format(task_info['gc state'])
+    output += task_output
     if delete_all or (done and delete_completed):
-        output[-1] = "<span strikethrough='true'>{}</span>".format(output[-1])
+        output = "<span strikethrough='true'>{}</span>".format(output)
         os.remove(fname)
+    outputs.append(output)
 
-if output:
-    print(" - ".join(output))
+if outputs:
+    print(" - ".join(outputs))
 else:
     print("GC None")
