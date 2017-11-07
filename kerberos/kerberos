@@ -26,25 +26,29 @@ from datetime import datetime, timedelta
 if 'BLOCK_INSTANCE' in os.environ:
     os.environ['KRB5CCNAME'] = os.environ['BLOCK_INSTANCE']
 
-lines = sp.check_output(['klist'], universal_newlines=True).splitlines()[4:]
-
 refresh = 'BLOCK_BUTTON' in os.environ and os.environ['BLOCK_BUTTON'] in ['2', '3']
 
-timeleft = None
-now = datetime.now()
-for line in lines:
-    line = line.split()
-    if re.match(r'^.*/.*@.*$', line[-1]):
-        # principal = line[-1]
-        expiry = datetime.strptime(line[2] + ' ' + line[3], '%m/%d/%Y %H:%M:%S')
-        if timeleft is None:
-            timeleft = expiry - now
-        else:
-            timeleft = min(timeleft, expiry - now)
+def get_timeleft():
+    lines = sp.check_output(['klist'], universal_newlines=True).splitlines()[4:]
+    timeleft = None
+    now = datetime.now()
+    for line in lines:
+        line = line.split()
+        if re.match(r'^.*/.*@.*$', line[-1]):
+            # principal = line[-1]
+            expiry = datetime.strptime(line[2] + ' ' + line[3], '%m/%d/%Y %H:%M:%S')
+            if timeleft is None:
+                timeleft = expiry - now
+            else:
+                timeleft = min(timeleft, expiry - now)
+    return timeleft
 
-print(':'.join(str(timeleft).split(':')[:-1]))
+timeleft = get_timeleft()
 
 if refresh or timeleft < timedelta(hours=2):
     sp.call(['kinit', '-R'])
     sp.call(['aklog'])
+    timeleft = get_timeleft()
+
+print(':'.join(str(timeleft).split(':')[:-1]))
 
