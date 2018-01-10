@@ -62,9 +62,12 @@ state_short = {
 }
 
 
-def colorize(string, color=None):
+def colorize(string, color=None, bold=False):
+    weight=''
+    if bold:
+        weight = " weight='bold'"
     if color:
-        return "<span color='{}'>{}</span>".format(color, string)
+        return "<span color='{}'{}>{}</span>".format(color, weight, string)
     return string
 
 
@@ -81,15 +84,15 @@ def get_task_output(states):
             color = None
             if state == 'FAILED':
                 color = 'red'
-            elif state not in ('RUNNING', 'DONE'):
+            elif state not in ('QUEUED', 'RUNNING', 'DONE'):
                 color = 'blue'
-            output += colorize(add, color) + ' '
+            output += colorize(add, color, bold=True) + ' '
         # print (state,count)
     output += "{}/{} ({:.0f}%)".format(success, total,
                                        100.*success/total if total else 0)
     done = total and success == total
     if done:
-        output = colorize(output, '#0f0')
+        output = colorize(output, '#7F9F7F', bold=True)
     return output, done
 
 # expand environment variables etc.
