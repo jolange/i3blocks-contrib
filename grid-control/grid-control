@@ -105,7 +105,7 @@ for fname in glob.glob(directory+"/*.json"):
         task_info = json.load(json_file)
     timestamp_diff = time.time() - os.path.getmtime(fname)
     task_id = task_info['task id']
-    output = task_id[:task_id_trunc]
+    output = task_id[2:task_id_trunc]
     if task_info['gc state'] != 'terminated' and timestamp_diff > timestamp_warning_threshold:
         task_info['gc state'] = "crashed %s ago?" % datetime.timedelta(seconds=int(timestamp_diff))
     done = False
@@ -122,6 +122,6 @@ for fname in glob.glob(directory+"/*.json"):
     outputs.append(output)
 
 if outputs:
-    print(" - ".join(outputs))
+    print("GC " + " - ".join(outputs))
 else:
-    print("GC None")
+    print(u"GC \uf165")
