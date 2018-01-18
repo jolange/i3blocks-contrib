@@ -18,10 +18,20 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import argparse
 import subprocess as sp
 import re, os
 from datetime import datetime, timedelta
 
+parser = argparse.ArgumentParser(
+    description='Show kerberos ticket expiry information.',
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+)
+parser.add_argument('--auto-refresh', type=int, default=None, metavar='DELTA',
+                    help='Auto refresh DELTA before token expiry [h].')
+parser.add_argument('--afs', action='store_true',
+                    help='Also refresh existing afs tokens.')
+args = parser.parse_args()
 
 if 'BLOCK_INSTANCE' in os.environ:
     os.environ['KRB5CCNAME'] = os.environ['BLOCK_INSTANCE']
@@ -45,9 +55,11 @@ def get_timeleft():
 
 timeleft = get_timeleft()
 
-if refresh or timeleft < timedelta(hours=2):
+refresh = refresh or (args.auto_refresh and timeleft < timedelta(hours=args.auto_refresh))
+if refresh:
     sp.call(['kinit', '-R'])
-    sp.call(['aklog'])
+    if args.afs:
+        sp.call(['aklog'])
     timeleft = get_timeleft()
 
 print(':'.join(str(timeleft).split(':')[:-1]))
