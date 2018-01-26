@@ -33,13 +33,14 @@ else:
     # raise Exception("Environment variable 'GC_MONITOR_DIR' has to be set")
     directory = "~/afs/playground/gc_mon/"
 
+block_button = int(os.environ['BLOCK_BUTTON']) if 'BLOCK_BUTTON' in os.environ else None
 # right click triggers deletion of the status json
 # of a completely processed task
-delete_completed = ('BLOCK_BUTTON' in os.environ
-                    and os.environ['BLOCK_BUTTON'] == '3')
+delete_completed = block_button is 3
 # middle click deletes all
-delete_all = ('BLOCK_BUTTON' in os.environ
-              and os.environ['BLOCK_BUTTON'] == '2')
+delete_all = block_button is 2
+# show and extended info popup
+info_popup = block_button is 1
 
 # excluded SUCCESS
 state_order = ['INIT', 'SUBMITTED', 'DISABLED', 'READY', 'WAITING', 'QUEUED',
@@ -100,12 +101,14 @@ directory = os.path.expandvars(directory)
 directory = os.path.expanduser(directory)
 
 outputs = []
+extended_info = []
 for fname in glob.glob(directory+"/*.json"):
     with open(fname) as json_file:
         task_info = json.load(json_file)
     timestamp_diff = time.time() - os.path.getmtime(fname)
     task_id = task_info['task id']
     output = task_id[2:task_id_trunc]
+    info = "<span weight='bold'>%s</span>" % task_id + ' (%s)\n' % task_info['name']
     if task_info['gc state'] != 'terminated' and timestamp_diff > timestamp_warning_threshold:
         task_info['gc state'] = "crashed %s ago?" % datetime.timedelta(seconds=int(timestamp_diff))
     done = False
@@ -116,12 +119,18 @@ for fname in glob.glob(directory+"/*.json"):
     if task_info['gc state'] != 'running' and not done:
         output += " <span color='red'>{}</span>".format(task_info['gc state'])
     output += task_output
+    info += task_info['gc state'] + '\n'
+    info += task_output + '\n'
     if delete_all or (done and delete_completed):
         output = "<span strikethrough='true'>{}</span>".format(output)
         os.remove(fname)
     outputs.append(output)
+    extended_info.append(info)
 
 if outputs:
     print("GC " + " - ".join(outputs))
 else:
     print(u"GC \uf165")
+
+if info_popup:
+    os.system('notify-send -u low "%s"' % '\n'.join(extended_info))
