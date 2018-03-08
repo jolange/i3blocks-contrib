@@ -25,7 +25,7 @@ import time
 
 
 task_id_trunc = 6
-timestamp_warning_threshold = 30 # sec
+timestamp_warning_threshold = 30  # sec
 
 if 'GC_MONITOR_DIR' in os.environ:
     directory = os.environ['GC_MONITOR_DIR']
@@ -33,7 +33,8 @@ else:
     # raise Exception("Environment variable 'GC_MONITOR_DIR' has to be set")
     directory = "~/afs/playground/gc_mon/"
 
-block_button = int(os.environ['BLOCK_BUTTON']) if 'BLOCK_BUTTON' in os.environ else None
+block_button = os.environ['BLOCK_BUTTON'] if 'BLOCK_BUTTON' in os.environ else None
+block_button = int(block_button) if block_button else None
 # right click triggers deletion of the status json
 # of a completely processed task
 delete_completed = block_button is 3
@@ -64,7 +65,7 @@ state_short = {
 
 
 def colorize(string, color=None, bold=False):
-    weight=''
+    weight = ''
     if bold:
         weight = " weight='bold'"
     if color:
@@ -86,11 +87,11 @@ def get_task_output(states):
             if state == 'FAILED':
                 color = 'red'
             elif state not in ('QUEUED', 'RUNNING', 'DONE'):
-                color = 'blue'
-            output += colorize(add, color, bold=True) + ' '
+                color = '#8CD0D3'
+            output += colorize(add, color) + ' '
         # print (state,count)
     output += "{}/{} ({:.0f}%)".format(success, total,
-                                       100.*success/total if total else 0)
+                                       100. * success / total if total else 0)
     done = total and success == total
     if done:
         output = colorize(output, '#7F9F7F', bold=True)
@@ -102,7 +103,7 @@ directory = os.path.expanduser(directory)
 
 outputs = []
 extended_info = []
-for fname in glob.glob(directory+"/*.json"):
+for fname in glob.glob(directory + "/*.json"):
     with open(fname) as json_file:
         task_info = json.load(json_file)
     timestamp_diff = time.time() - os.path.getmtime(fname)
